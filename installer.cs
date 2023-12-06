@@ -123,7 +123,7 @@ class InstallerLAMP
         Process.Start("wget", "https://github.com/classbook-devloppers/linux-server/script.py -O script.py").WaitForExit();
 
         // Exécution du script Python en tant qu'administrateur
-        Process.Start("sudo", "python3 script.py").WaitForExit();
+        Process.Start("sudo python3 script.py").WaitForExit();
 
         Console.WriteLine("Python script execution completed.");
     }
@@ -143,9 +143,9 @@ class InstallerLAMP
                     : new StreamWriter(sr.BaseStream);
 
                 // Si la ligne contient "Enter the password" ou "entrer le mot de passe pour", envoyez le mot de passe
-                if (line.Contains("Enter the password") || line.Contains("entrer le mot de passe pour") || line.Contains("enter the mot de passe for"))
+                if (line.Contains("Enter the password") || line.Contains("entrer le mot de passe pour")
                 {
-                    sw.WriteLine(password); // Répondre avec le mot de passe spécifié
+                    sw.WriteLine(password);
                 }
                 else
                 {
