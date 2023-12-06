@@ -32,7 +32,7 @@ def main():
     # Suppression du répertoire dézippé
     shutil.rmtree(classbook_path)
 
-    print("Website download and setup completed.")
+    print("Website download and setup completed. Your Computer Must be restart, Restart Now? [Y/n]")
 
 if __name__ == "__main__":
     main()
