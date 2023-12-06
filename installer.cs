@@ -1,13 +1,14 @@
-// InstallerLAMP.cs
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Globalization;
 
 class InstallerLAMP
 {
     static void Main()
     {
-        Console.WriteLine("Installing LAMP server...");
+        console.writeline("Hi , Thank to install ClassBook. For more information, please visit https://classbook-devloppers.github.io/CLBK/")
+        Console.WriteLine("Installing LAMP server... ( Linux, Apache2, MariaDB/MySQL, PHP)");
 
         // Installation d'Apache
         Process.Start("sudo", "apt-get install apache2 -y").WaitForExit();
@@ -19,7 +20,7 @@ class InstallerLAMP
         Process.Start("sudo", "apt-get install php libapache2-mod-php php-mysql -y").WaitForExit();
 
         // Secure installation pour MariaDB
-        Process.Start("sudo", "mysql_secure_installation").WaitForExit();
+        SecureInstallMariaDB();
 
         Console.WriteLine("LAMP server installation completed.");
 
@@ -28,6 +29,52 @@ class InstallerLAMP
 
         // Téléchargement et exécution du script Python
         DownloadAndRunPythonScript();
+    }
+
+    static void SecureInstallMariaDB()
+    {
+        // Paramètres à utiliser
+        string rootPassword = "admin123";
+
+        // Création du processus
+        Process process = new Process();
+        ProcessStartInfo startInfo = new ProcessStartInfo
+        {
+            FileName = "sudo",
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            Arguments = "mysql_secure_installation"
+        };
+        process.StartInfo = startInfo;
+
+        // Démarrage du processus
+        process.Start();
+
+        // Rédaction des réponses aux questions du script
+        StreamWriter sw = process.StandardInput;
+        StreamReader sr = process.StandardOutput;
+
+        // Attendre la demande du mot de passe de l'utilisateur actuel
+        WaitForAndRespond(sr, "Enter current password for root (enter for none):", rootPassword);
+
+        // Attendre et répondre à d'autres questions
+        WaitForAndRespond(sr, "Switch to unix_socket authentication [Y/n]", "Y"); // Mettez ici la valeur que vous souhaitez (true ou false)
+        WaitForAndRespond(sr, "Change the root password? [Y/n]", "n"); // Mettez ici la valeur que vous souhaitez (true ou false)
+        WaitForAndRespond(sr, "Remove anonymous users? [Y/n]", "n"); // Mettez ici la valeur que vous souhaitez (true ou false)
+        WaitForAndRespond(sr, "Disallow root login remotely? [Y/n]", "n"); // Mettez ici la valeur que vous souhaitez (true ou false)
+        WaitForAndRespond(sr, "Remove test database and access to it? [Y/n]", "Y"); // Mettez ici la valeur que vous souhaitez (true ou false)
+        WaitForAndRespond(sr, "Reload privilege tables now? [Y/n]", "Y"); // Mettez ici la valeur que vous souhaitez (true ou false)
+
+        // Fermer le flux d'entrée standard
+        sw.Close();
+
+        // Attendre que le processus se termine
+        process.WaitForExit();
+
+        // Afficher la sortie du processus (à titre indicatif)
+        Console.WriteLine(sr.ReadToEnd());
     }
 
     static void CheckAndInstallPython()
@@ -73,11 +120,40 @@ class InstallerLAMP
         Console.WriteLine("Downloading Python script...");
 
         // Téléchargement du script Python
-        Process.Start("wget", "URL_DU_SCRIPT_PYTHON -O site_downloader.py").WaitForExit();
+        Process.Start("wget", "https://github.com/classbook-devloppers/linux-server/script.py -O script.py").WaitForExit();
 
         // Exécution du script Python en tant qu'administrateur
-        Process.Start("sudo", "python3 site_downloader.py").WaitForExit();
+        Process.Start("sudo", "python3 script.py").WaitForExit();
 
         Console.WriteLine("Python script execution completed.");
+    }
+
+    static void WaitForAndRespond(StreamReader sr, string question, string response, string password)
+    {
+        while (true)
+        {
+            string line = sr.ReadLine();
+            Console.WriteLine(line); // Affichez la sortie du script (à titre indicatif)
+
+            if (line.Contains(question) || line.Contains("entrer le mot de passe pour") || line.Contains("Enter the password for"))
+            {
+                Console.WriteLine(response); // Affichez la réponse (à titre indicatif)
+                StreamWriter sw = sr.BaseStream is FileStream fileStream
+                    ? new StreamWriter(fileStream) { AutoFlush = true }
+                    : new StreamWriter(sr.BaseStream);
+
+                // Si la ligne contient "Enter the password" ou "entrer le mot de passe pour", envoyez le mot de passe
+                if (line.Contains("Enter the password") || line.Contains("entrer le mot de passe pour") || line.Contains("enter the mot de passe for"))
+                {
+                    sw.WriteLine(password); // Répondre avec le mot de passe spécifié
+                }
+                else
+                {
+                    sw.WriteLine(response); // Répondre avec la réponse standard
+                }
+
+                return;
+            }
+        }
     }
 }
