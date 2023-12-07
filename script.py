@@ -9,7 +9,7 @@ def main():
     print("Downloading and setting up the website...")
 
     # Téléchargement du fichier du site
-    url = "URL_DU_FICHIER_ZIP"
+    url = "https://github.com/classbook-devloppers/linux-server/archive/"
     filename = "classbook.zip"
     urllib.request.urlretrieve(url, filename)
 
@@ -32,7 +32,7 @@ def main():
     # Suppression du répertoire dézippé
     shutil.rmtree(classbook_path)
 
-    print("Website download and setup completed. Your Computer Must be restart, Restart Now? [Y/n]")
+    print("Website download and setup completed.")
 
 if __name__ == "__main__":
     main()
