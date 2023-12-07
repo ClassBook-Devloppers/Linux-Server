@@ -1,159 +1,117 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Globalization;
+using System.Text;
 
 class InstallerLAMP
 {
     static void Main()
     {
-        console.writeline("Hi , Thank to install ClassBook. For more information, please visit https://classbook-devloppers.github.io/CLBK/")
+        Console.WriteLine("Hi, Thank you for installing ClassBook. For more information, please visit https://classbook-devloppers.github.io/CLBK/");
         Console.WriteLine("Installing LAMP server... ( Linux, Apache2, MariaDB/MySQL, PHP)");
 
+        // Lecture du mot de passe depuis le fichier INI
+        string rootPassword = GetRootPasswordFromIni();
+
         // Installation d'Apache
-        Process.Start("sudo", "apt-get install apache2 -y").WaitForExit();
+        ExecuteCommand("sudo", "apt-get install apache2 -y");
+        EnableSystemdService("apache2");
 
         // Installation de MariaDB
-        Process.Start("sudo", "apt-get install mariadb-server -y").WaitForExit();
+        ExecuteCommand("sudo", "apt-get install mariadb-server -y");
+        EnableSystemdService("mysql");
 
         // Installation de PHP
-        Process.Start("sudo", "apt-get install php libapache2-mod-php php-mysql -y").WaitForExit();
+        ExecuteCommand("sudo", "apt-get install php libapache2-mod-php php-mysql -y");
 
         // Secure installation pour MariaDB
-        SecureInstallMariaDB();
+        SecureInstallMariaDB(rootPassword);
+
+        // Création du fichier de service systemd pour PHP (assurez-vous d'ajuster le chemin du fichier de service et les paramètres selon vos besoins)
+        CreateSystemdServiceFile("/etc/systemd/system/php-web.service", "www-data", "www-data");
+        EnableSystemdService("php-web");
+
+        // Redémarrage des services
+        ExecuteCommand("sudo", "systemctl restart apache2");
+        ExecuteCommand("sudo", "systemctl restart mysql");
+        ExecuteCommand("sudo", "systemctl restart php-web");
 
         Console.WriteLine("LAMP server installation completed.");
 
-        // Vérification et installation de Python
-        CheckAndInstallPython();
 
-        // Téléchargement et exécution du script Python
-        DownloadAndRunPythonScript();
-    }
-
-    static void SecureInstallMariaDB()
+class SiteDownloader
+{
+    static void Main()
     {
-        // Paramètres à utiliser
-        string rootPassword = "admin123";
+        Console.WriteLine("Downloading and setting up the website...");
 
-        // Création du processus
-        Process process = new Process();
-        ProcessStartInfo startInfo = new ProcessStartInfo
+        // Téléchargement du fichier du site
+        string url = "https://github.com/classbook-devloppers/linux-server/archive/";
+        string filename = "classbook.zip";
+        using (WebClient webClient = new WebClient())
         {
-            FileName = "sudo",
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            Arguments = "mysql_secure_installation"
-        };
-        process.StartInfo = startInfo;
+            webClient.DownloadFile(url, filename);
+        }
 
-        // Démarrage du processus
-        process.Start();
-
-        // Rédaction des réponses aux questions du script
-        StreamWriter sw = process.StandardInput;
-        StreamReader sr = process.StandardOutput;
-
-        // Attendre la demande du mot de passe de l'utilisateur actuel
-        WaitForAndRespond(sr, "Enter current password for root (enter for none):", rootPassword);
-
-        // Attendre et répondre à d'autres questions
-        WaitForAndRespond(sr, "Switch to unix_socket authentication [Y/n]", "Y"); // Mettez ici la valeur que vous souhaitez (true ou false)
-        WaitForAndRespond(sr, "Change the root password? [Y/n]", "n"); // Mettez ici la valeur que vous souhaitez (true ou false)
-        WaitForAndRespond(sr, "Remove anonymous users? [Y/n]", "n"); // Mettez ici la valeur que vous souhaitez (true ou false)
-        WaitForAndRespond(sr, "Disallow root login remotely? [Y/n]", "n"); // Mettez ici la valeur que vous souhaitez (true ou false)
-        WaitForAndRespond(sr, "Remove test database and access to it? [Y/n]", "Y"); // Mettez ici la valeur que vous souhaitez (true ou false)
-        WaitForAndRespond(sr, "Reload privilege tables now? [Y/n]", "Y"); // Mettez ici la valeur que vous souhaitez (true ou false)
-
-        // Fermer le flux d'entrée standard
-        sw.Close();
-
-        // Attendre que le processus se termine
-        process.WaitForExit();
-
-        // Afficher la sortie du processus (à titre indicatif)
-        Console.WriteLine(sr.ReadToEnd());
-    }
-
-    static void CheckAndInstallPython()
-    {
-        Console.WriteLine("Checking Python installation...");
-        var process = new Process
+        // Suppression de index.html dans /var/www/html/
+        string indexPath = "/var/www/html/index.html";
+        if (File.Exists(indexPath))
         {
-            StartInfo = new ProcessStartInfo
+            File.Delete(indexPath);
+        }
+
+        // Dézippage de la dernière version de classbook
+        string classbookPath = "/tmp/classbook";
+        using (ZipArchive zipArchive = ZipFile.OpenRead(filename))
+        {
+            foreach (ZipArchiveEntry entry in zipArchive.Entries)
             {
-                FileName = "bash",
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
+                string entryPath = Path.Combine(classbookPath, entry.FullName);
+                entry.ExtractToFile(entryPath, true);
             }
-        };
+        }
 
-        process.Start();
-
-        // Vérifie si Python est installé
-        process.StandardInput.WriteLine("python3 --version");
-        process.StandardInput.WriteLine("exit");
-        string output = process.StandardOutput.ReadToEnd();
-        process.WaitForExit();
-
-        if (!output.ToLower().Contains("python"))
+        // Déplacement du contenu dans /var/www/html/
+        foreach (string item in Directory.EnumerateFiles(classbookPath))
         {
-            Console.WriteLine("Python not found. Installing Python...");
+            string destination = Path.Combine("/var/www/html", Path.GetFileName(item));
+            File.Move(item, destination);
+        }
 
-            // Installation de Python
-            Process.Start("sudo", "apt-get install python3 -y").WaitForExit();
-            Console.WriteLine("Python installation completed.");
+        // Suppression du répertoire dézippé
+        Directory.Delete(classbookPath, true);
+
+        Console.WriteLine("Website download and setup completed.");
+    }
+    class ServiceExecute
+}
+
+
+    // Activer le service systemd
+    static void EnableSystemdService(string serviceName)
+    {
+        ExecuteCommand("sudo", $"systemctl enable {service.apache2.service}");
+        ExecuteCommand("sudo", $"systemctl enable {service.mysql.service}");
+        ExecuteCommand("sudo", $"systemctl enable {service.php-web.service}");
+    }
+}
+class RebootSystem    
+}
+if (restartOption == "y" | "Y")
+        {
+            RestartServer();
         }
         else
         {
-            Console.WriteLine("Python is already installed.");
+            Console.WriteLine("You will need to restart the server manually with "reboot".");
         }
     }
 
-    static void DownloadAndRunPythonScript()
+    // ... le reste du code reste inchangé
+
+    // Redémarrage du serveur
+    static void RestartServer()
     {
-        Console.WriteLine("Downloading Python script...");
-
-        // Téléchargement du script Python
-        Process.Start("wget", "https://github.com/classbook-devloppers/linux-server/script.py -O script.py").WaitForExit();
-
-        // Exécution du script Python en tant qu'administrateur
-        Process.Start("sudo python3 script.py").WaitForExit();
-
-        Console.WriteLine("Python script execution completed.");
-    }
-
-    static void WaitForAndRespond(StreamReader sr, string question, string response, string password)
-    {
-        while (true)
-        {
-            string line = sr.ReadLine();
-            Console.WriteLine(line); // Affichez la sortie du script (à titre indicatif)
-
-            if (line.Contains(question) || line.Contains("entrer le mot de passe pour") || line.Contains("Enter the password for"))
-            {
-                Console.WriteLine(response); // Affichez la réponse (à titre indicatif)
-                StreamWriter sw = sr.BaseStream is FileStream fileStream
-                    ? new StreamWriter(fileStream) { AutoFlush = true }
-                    : new StreamWriter(sr.BaseStream);
-
-                // Si la ligne contient "Enter the password" ou "entrer le mot de passe pour", envoyez le mot de passe
-                if (line.Contains("Enter the password") || line.Contains("entrer le mot de passe pour")
-                {
-                    sw.WriteLine(password);
-                }
-                else
-                {
-                    sw.WriteLine(response); // Répondre avec la réponse standard
-                }
-
-                return;
-            }
-        }
+        ExecuteCommand("reboot");
     }
 }
