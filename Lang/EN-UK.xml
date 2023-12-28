@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<translations>
+  <greeting>Hi, Thank you for installing ClassBook. For more information, please visit https://classbook.webnode.page/</greeting>
+  <installInstructions>Please run the installer as an administrator.</installInstructions>
+  <configuration>Configuration</configuration>
+  <finalization>Finalization</finalization>
+  <restartPrompt>Do you want to restart the server? (Y/N)</restartPrompt>
+  <rebootRequired>You will need to restart your server with the reboot command!</rebootRequired>
+  <!-- Add other translations here -->
+</translations>
