@@ -21,6 +21,8 @@ class Program
 
         Console.WriteLine(GetLocalizedString("Download and Installation"));
 
+        ExecuteSudoCommand("sudo apt install apache2 php mariadb-server mariadb-client phpmyadmin php-zip php-gd php-json php-curl libapache2-mod-php -y")
+
         string repositoryOwner = "classbook-devloppers";
         string repositoryName = "classbook";
         string downloadUrl = $"https://github.com/{repositoryOwner}/{repositoryName}/releases/latest/download/Latest.zip";
@@ -38,9 +40,12 @@ class Program
 
         Console.WriteLine(GetLocalizedString("Finalization"));
 
-        ExecuteSudoCommand("sudo service nginx restart");
+        ExecuteSudoCommand("sudo service apache2 restart");
+        ExecuteSudoCommand("admin123")
         ExecuteSudoCommand("sudo service php restart");
+        ExecuteSudoCommand("admin123")
         ExecuteSudoCommand("sudo service mariadb restart");
+        ExecuteSudoCommand("admin123")
 
         Console.WriteLine(GetLocalizedString("Do you want to restart the server? (Y/N)"));
         var userInput = Console.ReadLine();
