@@ -1,145 +1,128 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Net;
-using System.Xml;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.IO.Compression;
 
 class Program
 {
-    static void Main()
+    static async Task Main()
     {
-        if (!IsAdministrator())
-        {
-            Console.WriteLine(GetLocalizedString("Hi, Thank you for installing ClassBook. For more information, please visit https://classbook.webnode.page/"));
-            return;
-        }
-        else
-        {
-            Console.WriteLine(GetLocalizedString("Please run the installer as an administrator."));
-            return;
-        }
+        Console.WriteLine("Téléchargement et installation");
 
-        Console.WriteLine(GetLocalizedString("Download and Installation"));
-
-        ExecuteSudoCommand("sudo apt install apache2 php mariadb-server mariadb-client phpmyadmin php-zip php-gd php-json php-curl libapache2-mod-php -y")
-
-        string repositoryOwner = "classbook-devloppers";
+        // Remplacez ces valeurs par les informations de votre référentiel GitHub
+        string repositoryOwner = "classbook-devlopers";
         string repositoryName = "classbook";
-        string downloadUrl = $"https://github.com/{repositoryOwner}/{repositoryName}/releases/latest/download/Latest.zip";
+        string releaseTagName = "latest";
+
+        string downloadUrl = GetGitHubReleaseDownloadUrl(repositoryOwner, repositoryName, releaseTagName);
         string zipFilePath = "Latest.zip";
         string extractPath = "/var/www/html";
 
-        DownloadFile(downloadUrl, zipFilePath);
-        ExtractZip(zipFilePath, extractPath);
-        DeleteFile(zipFilePath);
+        using (var httpClient = new HttpClient())
+        {
+            await DownloadFileAsync(httpClient, downloadUrl, zipFilePath);
+            ExtractZip(zipFilePath, extractPath);
+            DeleteFile(zipFilePath);
+        }
 
-        Console.WriteLine(GetLocalizedString("Configuration"));
+        Console.WriteLine("Configuration");
 
-        ExecuteSudoCommand("mariadb-secure-installation");
+        // Utilisation de la lecture du fichier de configuration
         string mariadbConfigPath = "/config/mariadb-config.conf";
+        var mariadbConfig = ReadConfigFile(mariadbConfigPath);
 
-        Console.WriteLine(GetLocalizedString("Finalization"));
+        string mariadbUser = mariadbConfig.GetValueOrDefault("MariaDBUser", "defaultUser");
+        string mariadbPassword = mariadbConfig.GetValueOrDefault("MariaDBPassword", "defaultPassword");
 
-        ExecuteSudoCommand("sudo service apache2 restart");
-        ExecuteSudoCommand("admin123")
-        ExecuteSudoCommand("sudo service php restart");
-        ExecuteSudoCommand("admin123")
-        ExecuteSudoCommand("sudo service mariadb restart");
-        ExecuteSudoCommand("admin123")
+        Console.WriteLine($"MariaDB User: {mariadbUser}");
+        Console.WriteLine($"MariaDB Password: {mariadbPassword}");
 
-        Console.WriteLine(GetLocalizedString("Do you want to restart the server? (Y/N)"));
-        var userInput = Console.ReadLine();
-
-        if (userInput != null && userInput.Trim().ToUpper() == "Y")
-        {
-            ExecuteSudoCommand("reboot");
-        }
-        else
-        {
-            Console.WriteLine(GetLocalizedString("You will need to restart your server with the reboot command!"));
-        }
+        // Reste du code...
+        // Ajoutez ici le reste du code en fonction de votre logique d'installation/configuration
     }
 
-    static string GetLocalizedString(string key)
+    static string GetGitHubReleaseDownloadUrl(string owner, string repo, string tag)
     {
-        string languageCode = "FR"; 
+        return $"https://github.com/{owner}/{repo}/releases/{tag}/download/Latest.zip";
+    }
 
-        string translationsFilePath = $"{languageCode}.xml";
-
-        if (!File.Exists(translationsFilePath))
-        {
-            Console.WriteLine($"Fichier de traduction manquant/Corrompu: {translationsFilePath}");
-            return key;
-        }
-
+    static async Task DownloadFileAsync(HttpClient httpClient, string url, string destinationPath)
+    {
         try
         {
-            var doc = new XmlDocument();
-            doc.Load(translationsFilePath);
-
-            XmlNode translationNode = doc.SelectSingleNode($"/Lang/{key}");
-
-            return translationNode != null ? translationNode.InnerText : key;
+            var response = await httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+            using (var stream = await response.Content.ReadAsStreamAsync())
+            using (var fileStream = File.Create(destinationPath))
+            {
+                await stream.CopyToAsync(fileStream);
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Erreur lors de la lecture du fichier de traduction : {ex.Message}");
-            return key;
-        }
-    }
-
-    static void DownloadFile(string url, string destinationPath)
-    {
-        using (WebClient webClient = new WebClient())
-        {
-            webClient.DownloadFile(url, destinationPath);
+            Console.WriteLine($"Erreur de téléchargement du fichier : {ex.Message}");
         }
     }
 
     static void ExtractZip(string zipFilePath, string extractPath)
     {
-        ZipFile.ExtractToDirectory(zipFilePath, extractPath);
+        try
+        {
+            ZipFile.ExtractToDirectory(zipFilePath, extractPath);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur d'extraction du fichier ZIP : {ex.Message}");
+        }
     }
 
     static void DeleteFile(string filePath)
     {
-        File.Delete(filePath);
-    }
-
-    static void ExecuteSudoCommand(string command)
-    {
-        var processInfo = new ProcessStartInfo("sudo", command)
+        try
         {
-            RedirectStandardError = true,
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        var process = new Process { StartInfo = processInfo };
-
-        process.Start();
-        process.WaitForExit();
-
-        var output = process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd();
-
-        if (!string.IsNullOrEmpty(output))
-        {
-            Console.WriteLine(output);
+            File.Delete(filePath);
         }
-
-        if (!string.IsNullOrEmpty(error))
+        catch (Exception ex)
         {
-            Console.WriteLine(error);
+            Console.WriteLine($"Erreur de suppression du fichier : {ex.Message}");
         }
     }
 
-    static bool IsAdministrator()
+    static Dictionary<string, string> ReadConfigFile(string filePath)
     {
-        var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
-        var principal = new System.Security.Principal.WindowsPrincipal(identity);
+        var configValues = new Dictionary<string, string>();
 
-        return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        try
+        {
+            if (File.Exists(filePath))
+            {
+                var lines = File.ReadAllLines(filePath);
+
+                foreach (var line in lines)
+                {
+                    var parts = line.Split('=');
+
+                    if (parts.Length == 2)
+                    {
+                        var key = parts[0].Trim();
+                        var value = parts[1].Trim();
+                        configValues[key] = value;
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Le fichier de configuration n'existe pas : {filePath}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur lors de la lecture du fichier de configuration : {ex.Message}");
+        }
+
+        return configValues;
     }
 }

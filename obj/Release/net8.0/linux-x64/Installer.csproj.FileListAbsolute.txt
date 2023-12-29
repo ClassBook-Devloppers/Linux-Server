@@ -1,0 +1,15 @@
+/home/vava/github/ClassBook/linux-server/bin/Release/net8.0/linux-x64/Installer
+/home/vava/github/ClassBook/linux-server/bin/Release/net8.0/linux-x64/Installer.deps.json
+/home/vava/github/ClassBook/linux-server/bin/Release/net8.0/linux-x64/Installer.runtimeconfig.json
+/home/vava/github/ClassBook/linux-server/bin/Release/net8.0/linux-x64/Installer.dll
+/home/vava/github/ClassBook/linux-server/bin/Release/net8.0/linux-x64/Installer.pdb
+/home/vava/github/ClassBook/linux-server/obj/Release/net8.0/linux-x64/Installer.GeneratedMSBuildEditorConfig.editorconfig
+/home/vava/github/ClassBook/linux-server/obj/Release/net8.0/linux-x64/Installer.AssemblyInfoInputs.cache
+/home/vava/github/ClassBook/linux-server/obj/Release/net8.0/linux-x64/Installer.AssemblyInfo.cs
+/home/vava/github/ClassBook/linux-server/obj/Release/net8.0/linux-x64/Installer.csproj.CoreCompileInputs.cache
+/home/vava/github/ClassBook/linux-server/obj/Release/net8.0/linux-x64/Installer.sourcelink.json
+/home/vava/github/ClassBook/linux-server/obj/Release/net8.0/linux-x64/Installer.dll
+/home/vava/github/ClassBook/linux-server/obj/Release/net8.0/linux-x64/refint/Installer.dll
+/home/vava/github/ClassBook/linux-server/obj/Release/net8.0/linux-x64/Installer.pdb
+/home/vava/github/ClassBook/linux-server/obj/Release/net8.0/linux-x64/Installer.genruntimeconfig.cache
+/home/vava/github/ClassBook/linux-server/obj/Release/net8.0/linux-x64/ref/Installer.dll
