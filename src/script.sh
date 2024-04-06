@@ -60,7 +60,8 @@ echo "$ROOT_PASSWORD" | sudo -S apt install smb -y
 echo ""
 echo "Installation de Samba Terminé ! "
 echo " Configuration de Samba "
-
+chmod 755 smb_conf.sh
+sudo ./smb_conf.sh
 
 echo ""
 echo ""
