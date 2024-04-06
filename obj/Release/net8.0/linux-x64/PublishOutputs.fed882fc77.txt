@@ -1,5 +1,0 @@
-/home/vava/github/ClassBook/linux-server/bin/Release/net8.0/linux-x64/publish/Installer
-/home/vava/github/ClassBook/linux-server/bin/Release/net8.0/linux-x64/publish/Installer.dll
-/home/vava/github/ClassBook/linux-server/bin/Release/net8.0/linux-x64/publish/Installer.deps.json
-/home/vava/github/ClassBook/linux-server/bin/Release/net8.0/linux-x64/publish/Installer.runtimeconfig.json
-/home/vava/github/ClassBook/linux-server/bin/Release/net8.0/linux-x64/publish/Installer.pdb
