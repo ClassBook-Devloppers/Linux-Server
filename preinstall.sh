@@ -41,6 +41,7 @@ else
     cd pkg
 fi
 
+sudo apt install git -y
 wget https://github.com/classbook-devloppers/linux-server/blob/main/src/disk_part.sh
 wget https://github.com/classbook-devloppers/linux-server/blob/main/src/script.sh
 wget https://github.com/classbook-devloppers/linux-server/blob/main/src/postinstall.sh
