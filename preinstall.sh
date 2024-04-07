@@ -44,8 +44,10 @@ fi
 wget https://github.com/classbook-devloppers/linux-server/blob/main/src/disk_part.sh
 wget https://github.com/classbook-devloppers/linux-server/blob/main/src/script.sh
 wget https://github.com/classbook-devloppers/linux-server/blob/main/src/postinstall.sh
-wget https://github.com/classbook-devloppers/linux-server/blob/main/src/mariadb_install.sh
-wget https://github.com/classbook-devloppers/linux-server/blob/main/src/smb_conf.sh
+
+wget https://github.com/classbook-devloppers/linux-server/blob/main/config/mariadb_install.sh
+wget https://github.com/classbook-devloppers/linux-server/blob/main/config/smb_conf.sh
+wget https://github.com/classbook-devloppers/linux-server/blob/main/config/nginx_conf.sh
 
 echo "stockage du Mot de Passe dans $classbook_folder"
 echo "$ROOT_PASSWORD" > $classbook_folder/root_password.txt

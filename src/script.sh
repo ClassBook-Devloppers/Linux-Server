@@ -27,7 +27,7 @@ echo "$ROOT_PASSWORD" | sudo -S apt install parted -y
 echo ""
 echo " Création des volumes pour ClassBook "
 echo ""
-chmod 755 disk_part.sh
+sudo chmod 755 disk_part.sh
 sudo ./disk_part.sh
 echo ""
 echo " Création des volumes pour ClassBook terminé !"
@@ -40,6 +40,10 @@ echo ""
 echo " Installation du serveur WEB terminé ! "
 echo ""
 echo " Configuration du serveur WEB "
+sudo chmod 755 nginx_conf.sh
+sudo ./nginx_conf.sh
+echo ""
+echo "  Configuration du serveur WEB terminé ! "
 
 echo ""
 echo ""
@@ -49,6 +53,7 @@ echo ""
 echo "Installation du serveur DB terminé ! "
 echo " Configuration de MariaDB "
 echo "$ROOT_PASSWORD" | sudo -S mariadb-secure-installation
+sudo chmod 755 mariadb_install.sh
 sudo ./mariadb_install.sh
 echo ""
 echo " Configuration de Maria DB terminé ! "
@@ -58,15 +63,19 @@ echo ""
 echo " Installation de Samba " 
 echo "$ROOT_PASSWORD" | sudo -S apt install smb -y
 echo ""
-echo "Installation de Samba Terminé ! "
+echo "Installation de Samba terminé ! "
 echo " Configuration de Samba "
-chmod 755 smb_conf.sh
+sudo chmod 755 smb_conf.sh
 sudo ./smb_conf.sh
+echo " Configuration de Samba terminé ! "
 
 echo ""
 echo ""
-echo "Téléchargement de l'API de classbook"
-cd
+echo " Téléchargement de l'API de ClassBook "
+cd /classbook/web
+git clone https://github.com/classbook-devloppers/source-code.git
+cd $user_home
+echo " Téléchargement de l'API de ClassBook ! "
 
 echo ""
 echo ""

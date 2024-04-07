@@ -1,13 +1,22 @@
 #!/bin/bash
 
-# Répertoire où le script d'alerte sera stocké
-alert_script_dir="/chemin/vers/repertoire/alert/"
+user="$(whoami)"
+user_home="/home/$user"
+classbook_folder="$user_home/classbook"
+pkg_folder="$classbook_folder/pkg"
+alert_script_dir="/etc/classbook/alert/"
 
-# Vérifier si l'utilisateur est root
+
 if [[ $EUID -ne 0 ]]; then
-   echo "Ce script doit être exécuté en tant que root." 
+   echo "Ce script doit être exécuté en tant que root, mais l'utilisateur actuel est $EUID dont le nom est $user." 
    exit 1
 fi
+echo " Création du répertoire des alertes de classbook "
+cd /etc
+sudo mkdir classbook
+cd classbook
+sudo mkdir alerts
+cd $pkg_folder
 
 # Fonction pour configurer Samba
 configure_samba() {
@@ -69,3 +78,7 @@ if [[ $? -eq 0 ]]; then
 else
     echo "Le script d'alerte n'a pas pu s'exécuter avec succès. Les services ne seront pas configurés."
 fi
+
+cd $pkg_folder
+
+exit 0
