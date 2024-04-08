@@ -2,7 +2,6 @@
 user="$(whoami)"
 user_home="/home/$user"
 classbook_folder="$user_home/classbook"
-pkg_folder="$classbook_folder/pkg"
 
 if [[ $EUID -ne 0 ]]; then
    echo "Ce script doit être exécuté en tant que root, mais l'utilisateur actuel est $EUID dont le nom est $user." 
@@ -13,52 +12,57 @@ fi
 echo "Veuillez entrer le mot de passe du superutilisateur :"
 read -s ROOT_PASSWORD
 echo "Votre mot de passe $ROOT_PASSWORD est le suivant ? Y/n"
+echo ""
 read -n 1 confirmation
 
 
 if [[ $confirmation == "Y" || $confirmation == "y" ]]; then
 
+    echo ""
     echo "Mot de passe sauvgardé dans $classbook_folder."
 
 else
 
+    echo ""
+    echo ""
     echo "Veuillez entrer à nouveau le mot de passe du superutilisateur :"
     read -s ROOT_PASSWORD
     echo "Votre mot de passe $ROOT_PASSWORD est le suivant ? Y/n"
+    read -n 1 confirmation
 
 fi
 
 
 if [ -d "$user_home" ]; then
-    echo "Le répertoire utilisateur de $user existe : $user_home"
+    echo "Le répertoire de classbook existe : $classbook_folder"
 else
-    echo "Le répertoire utilisateur de $user n'existe pas : $user_home"
+    echo "Le répertoire utilisateur de $user n'existe pas : $classbook_folder"
     echo "création du répertoire"
     cd $user_home
     mkdir classbook
     cd classbook
-    mkdir pkg
-    cd pkg
+
 fi
 
 sudo apt install git -y
-wget https://github.com/classbook-devloppers/linux-server/blob/main/src/disk_part.sh
-wget https://github.com/classbook-devloppers/linux-server/blob/main/src/script.sh
-wget https://github.com/classbook-devloppers/linux-server/blob/main/src/postinstall.sh
 
-wget https://github.com/classbook-devloppers/linux-server/blob/main/config/mariadb_install.sh
-wget https://github.com/classbook-devloppers/linux-server/blob/main/config/smb_conf.sh
-wget https://github.com/classbook-devloppers/linux-server/blob/main/config/nginx_conf.sh
+wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/src/script.sh
+wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/src/disk_part.sh
+wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/src/postinstall.sh
+
+wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/config/mariadb_conf.sh
+wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/src/nginx_conf.sh
+wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/src/smb_conf.sh
 
 echo "stockage du Mot de Passe dans $classbook_folder"
 echo "$ROOT_PASSWORD" > $classbook_folder/root_password.txt
 chmod 600 $classbook_folder/root_password.txt
 
 
-chmod 755 /$pkg_folder/script.sh
-chmod 755 /$pkg_folder/postinstall.sh
-chmod 755 /$pkg_folder/disk_part.sh
-chmod 755 /$pkg_folder/mariadb_install.sh
-chmod 755 /$pkg_folder/smb_conf.sh
+chmod u+x script.sh
+chmod u+x postinstall.sh
+chmod u+x disk_part.sh
+chmod u+x mariadb_install.sh
+chmod u+x smb_conf.sh
 
-./script.sh
+sudo ./script.sh

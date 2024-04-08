@@ -3,7 +3,6 @@
 user="$(whoami)"
 user_home="/home/$user"
 classbook_folder="$user_home/classbook"
-pkg_folder="$classbook_folder/pkg"
 alert_script_dir="/etc/classbook/alert/"
 
 
@@ -16,7 +15,7 @@ cd /etc
 sudo mkdir classbook
 cd classbook
 sudo mkdir alerts
-cd $pkg_folder
+cd $classbook_folder
 
 # Fonction pour configurer Samba
 configure_samba() {
@@ -79,6 +78,6 @@ else
     echo "Le script d'alerte n'a pas pu s'exécuter avec succès. Les services ne seront pas configurés."
 fi
 
-cd $pkg_folder
+cd $classbook_folder
 
 exit 0

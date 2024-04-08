@@ -27,7 +27,6 @@ echo "$ROOT_PASSWORD" | sudo -S apt install parted -y
 echo ""
 echo " Création des volumes pour ClassBook "
 echo ""
-sudo chmod 755 disk_part.sh
 sudo ./disk_part.sh
 echo ""
 echo " Création des volumes pour ClassBook terminé !"
@@ -40,7 +39,6 @@ echo ""
 echo " Installation du serveur WEB terminé ! "
 echo ""
 echo " Configuration du serveur WEB "
-sudo chmod 755 nginx_conf.sh
 sudo ./nginx_conf.sh
 echo ""
 echo "  Configuration du serveur WEB terminé ! "
@@ -53,7 +51,6 @@ echo ""
 echo "Installation du serveur DB terminé ! "
 echo " Configuration de MariaDB "
 echo "$ROOT_PASSWORD" | sudo -S mariadb-secure-installation
-sudo chmod 755 mariadb_install.sh
 sudo ./mariadb_install.sh
 echo ""
 echo " Configuration de Maria DB terminé ! "
@@ -61,11 +58,10 @@ echo " Configuration de Maria DB terminé ! "
 echo ""
 echo ""
 echo " Installation de Samba " 
-echo "$ROOT_PASSWORD" | sudo -S apt install smb -y
+echo "$ROOT_PASSWORD" | sudo -S apt install samba -y
 echo ""
 echo "Installation de Samba terminé ! "
 echo " Configuration de Samba "
-sudo chmod 755 smb_conf.sh
 sudo ./smb_conf.sh
 echo " Configuration de Samba terminé ! "
 
