@@ -49,10 +49,10 @@ size_admin="15G"
 size_datas="40G"
 
 sudo parted $selected_disk mklabel gpt
-sudo parted -a opt $selected_disk mkpart primary ext4 1MiB $size_web
-sudo parted -a opt $selected_disk mkpart primary ext4 $size_web $(echo "$size_web + $size_smb" | bc) 
-sudo parted -a opt $selected_disk mkpart primary ext4 $(echo "$size_web + $size_smb" | bc) $(echo "$size_web + $size_smb + $size_admin" | bc)
-sudo parted -a opt $selected_disk mkpart primary ext4 $(echo "$size_web + $size_smb + $size_admin" | bc) $(echo "$size_web + $size_smb + $size_admin + $size_datas" | bc)
+sudo parted -a opt $selected_disk mkpart primary ext4 $size_web
+sudo parted -a opt $selected_disk mkpart primary ext4 $size_smb
+sudo parted -a opt $selected_disk mkpart primary ext4 $size_admin
+sudo parted -a opt $selected_disk mkpart primary ext4 $size_datas
 
 parted $selected_disk align-check optimal 1
 
