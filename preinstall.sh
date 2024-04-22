@@ -1,4 +1,5 @@
 #!/bin/bash
+
 user="$(whoami)"
 user_home="/home/$user"
 classbook_folder="$user_home/classbook"
