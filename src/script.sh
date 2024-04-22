@@ -9,8 +9,6 @@ root_password_file="$classbook_folder/root_password.txt"
 ROOT_PASSWORD=$(cat $root_password_file)
 
 
- 
-
 echo "MAJ du serveur"
 echo "$ROOT_PASSWORD" | sudo -S apt-get update -y
 echo "$ROOT_PASSWORD" | sudo -S apt install update nano -y

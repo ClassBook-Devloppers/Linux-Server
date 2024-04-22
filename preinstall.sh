@@ -57,10 +57,10 @@ echo "$ROOT_PASSWORD" > $classbook_folder/root_password.txt
 chmod 600 $classbook_folder/root_password.txt
 
 
-chmod u+x script.sh
-chmod u+x postinstall.sh
-chmod u+x disk_part.sh
-chmod u+x mariadb_install.sh
-chmod u+x smb_conf.sh
+sudo chmod 313 script.sh
+sudo chmod 313 postinstall.sh
+sudo chmod 313 disk_part.sh
+sudo chmod 313 mariadb_install.sh 
+sudo chmod 313 smb_conf.sh
 
-sudo ./script.sh
+./script.sh

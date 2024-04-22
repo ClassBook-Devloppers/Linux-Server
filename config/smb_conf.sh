@@ -73,7 +73,7 @@ echo "Script d'alerte créé : $alert_script_path"
 if [[ $? -eq 0 ]]; then
     configure_samba
 else
-    echo "Le script d'alerte n'a pas pu s'exécuter avec succès. Les services ne seront pas configurés."
+    echo "Le script d'alerte n'a pas pu s'exécuter avec succès. Tous les services ne seront pas configurés correctement."
 fi
 
 cd $pkg_folder
