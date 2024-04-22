@@ -4,10 +4,7 @@ user="$(whoami)"
 user_home="/home/$user"
 classbook_folder="$user_home/classbook"
 
-if [[ $EUID -ne 0 ]]; then
-   echo "Ce script doit être exécuté en tant que root, mais l'utilisateur actuel est $EUID dont le nom est $user." 
-   exit 1
-fi
+ 
 
 # Password SuperUser
 echo "Veuillez entrer le mot de passe du superutilisateur :"

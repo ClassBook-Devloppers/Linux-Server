@@ -6,10 +6,7 @@ classbook_folder="$user_home/classbook"
 root_password_file="$classbook_folder/root_password.txt"
 ROOT_PASSWORD=$(cat $root_password_file)
 
-if [[ $EUID -ne 0 ]]; then
-   echo "Ce script doit être exécuté en tant que root, mais l'utilisateur actuel est $EUID dont le nom est $user." 
-   exit 1
-fi
+ 
 
 
 mysql_secure_installation <<EOF

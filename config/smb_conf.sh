@@ -7,10 +7,7 @@ pkg_folder="$classbook_folder/pkg"
 alert_script_dir="/etc/classbook/alert/"
 
 
-if [[ $EUID -ne 0 ]]; then
-   echo "Ce script doit être exécuté en tant que root, mais l'utilisateur actuel est $EUID dont le nom est $user." 
-   exit 1
-fi
+ 
 echo " Création du répertoire des alertes de classbook "
 cd /etc
 sudo mkdir classbook
