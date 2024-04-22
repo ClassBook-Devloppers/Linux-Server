@@ -10,14 +10,11 @@ classbook_folder="$user_home/classbook"
 cat << EOF > /etc/nginx/sites-available/classbook
 server {
     listen 80;
-    server_name example.com;
+    server_name classbook;
 
     root /classbook/web;
     index index.html index.htm;
 
-    location /admin {
-        alias /classbook/admin;
-    }
 
     location /datas {
         alias /classbook/datas;

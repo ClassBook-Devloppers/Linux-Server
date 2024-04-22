@@ -45,13 +45,11 @@ lsblk $selected_disk
 
 size_web="10G"
 size_smb="30G"
-size_admin="15G"
 size_datas="40G"
 
 sudo parted $selected_disk mklabel gpt
 sudo parted -a opt $selected_disk mkpart primary ext4 $size_web
 sudo parted -a opt $selected_disk mkpart primary ext4 $size_smb
-sudo parted -a opt $selected_disk mkpart primary ext4 $size_admin
 sudo parted -a opt $selected_disk mkpart primary ext4 $size_datas
 
 parted $selected_disk align-check optimal 1
@@ -59,17 +57,14 @@ parted $selected_disk align-check optimal 1
 sudo mkfs.ext4 ${selected_disk}1
 sudo mkfs.ext4 ${selected_disk}2
 sudo mkfs.ext4 ${selected_disk}3
-sudo mkfs.ext4 ${selected_disk}4
 
 sudo e2label ${selected_disk}1 /classbook/web
 sudo e2label ${selected_disk}2 /classbook/smb
-sudo e2label ${selected_disk}3 /classbook/admin
-sudo e2label ${selected_disk}4 /classbook/datas
+sudo e2label ${selected_disk}3 /classbook/datas
 
 
 echo "$selected_disk1 /classbook/web ext4 defaults 0 0" >> sudo /etc/fstab
 echo "$selected_disk2 /classbook/smb ext4 defaults 0 0" >> sudo /etc/fstab
-echo "$selected_disk3 /classbook/admin ext4 defaults 0 0" >> sudo /etc/fstab
 echo "$selected_disk4 /classbook/datas ext4 defaults 0 0" >> sudo /etc/fstab
 
 if [ $? -eq 0 ]; then
