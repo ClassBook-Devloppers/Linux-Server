@@ -5,7 +5,6 @@ user_home="/home/$user"
 classbook_folder="$user_home/classbook"
 
  
-
 # Password SuperUser
 echo "Veuillez entrer le mot de passe du superutilisateur :"
 read -s ROOT_PASSWORD
