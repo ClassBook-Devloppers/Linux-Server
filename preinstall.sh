@@ -30,7 +30,7 @@ else
 fi
 
 
-if [ -d "$user_home" ]; then
+if [ -d "$classbook_folder" ]; then
     echo "Le répertoire de classbook existe : $classbook_folder"
 else
     echo "Le répertoire utilisateur de $user n'existe pas : $classbook_folder"
@@ -48,18 +48,20 @@ wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/sr
 wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/src/postinstall.sh
 
 wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/config/mariadb_conf.sh
-wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/src/nginx_conf.sh
-wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/src/smb_conf.sh
+wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/config/nginx_conf.sh
+wget https://raw.githubusercontent.com/ClassBook-Devloppers/Linux-Server/main/config/smb_conf.sh
 
 echo "stockage du Mot de Passe dans $classbook_folder"
+touch $classbook_folder/root_password.txt
 echo "$ROOT_PASSWORD" > $classbook_folder/root_password.txt
-chmod 600 $classbook_folder/root_password.txt
+sudo chmod 600 $classbook_folder/root_password.txt
 
 
-sudo chmod 313 script.sh
-sudo chmod 313 postinstall.sh
-sudo chmod 313 disk_part.sh
-sudo chmod 313 mariadb_install.sh 
-sudo chmod 313 smb_conf.sh
+sudo chmod 755 script.sh
+sudo chmod 755 postinstall.sh
+sudo chmod 755 disk_part.sh
+sudo chmod 755 mariadb_conf.sh 
+sudo chmod 755 smb_conf.sh
+sudo chmod 755 nginx_conf.sh
 
 ./script.sh
