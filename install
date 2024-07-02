@@ -1,0 +1,670 @@
+#!/usr/bin/bash
+
+clear
+echo -e "\e[0m\c"
+
+# shellcheck disable=SC2016
+echo '
+   ____ _               ____              _    
+  / ___| | __ _ ___ ___| __ )  ___   ___ | | __
+ | |   | |/ _` / __/ __|  _ \ / _ \ / _ \| |/ /
+ | |___| | (_| \__ \__ \ |_) | (_) | (_) |   < 
+  \____|_|\__,_|___/___/____/ \___/ \___/|_|\_\
+                                               
+   --- Made by ClassBook Devloppers Team ---
+'
+export PATH=/usr/sbin:$PATH
+export DEBIAN_FRONTEND=noninteractive
+
+set -e
+
+###############################################################################
+# GOLBALS                                                                     #
+###############################################################################
+
+((EUID)) && sudo_cmd="sudo"
+
+# shellcheck source=/dev/null
+source /etc/os-release
+
+# SYSTEM REQUIREMENTS
+readonly MINIMUM_DISK_SIZE_GB="15"
+readonly MINIMUM_MEMORY="2048"
+readonly CLASSBOOK_DEPANDS_PACKAGE=('wget' 'mailutils' 'postfix' 'libsasl2-2 ca-certificates' 'libsasl2-modules' 'curl'  'parted' 'ntfs-3g' 'net-tools' 'nginx' 'npm' 'php' 'php-mysql' 'php-pdo' 'php-mbstring' 'php-tokenizer' 'php-xml' 'samba' 'cifs-utils' 'mergerfs' 'unzip' 'libapache2-mod-php' 'mongodb-org')
+readonly CLASSBOOK_DEPANDS_COMMAND=('wget' 'curl' 'smartctl' 'parted' 'ntfs-3g' 'netstat' 'udevil' 'smbd' 'mount.cifs' 'mount.mergerfs' 'unzip')
+
+# SYSTEM INFO
+PHYSICAL_MEMORY=$(LC_ALL=C free -m | awk '/Mem:/ { print $2 }')
+readonly PHYSICAL_MEMORY
+
+FREE_DISK_BYTES=$(LC_ALL=C df -P / | tail -n 1 | awk '{print $4}')
+readonly FREE_DISK_BYTES
+
+readonly FREE_DISK_GB=$((FREE_DISK_BYTES / 1024 / 1024))
+
+LSB_DIST=$( ([ -n "${ID_LIKE}" ] && echo "${ID_LIKE}") || ([ -n "${ID}" ] && echo "${ID}"))
+readonly LSB_DIST
+
+DIST=$(echo "${ID}")
+readonly DIST
+
+UNAME_M="$(uname -m)"
+readonly UNAME_M
+
+UNAME_U="$(uname -s)"
+readonly UNAME_U
+
+readonly CLASSBOOK_CONF_PATH=/etc/classbook/gateway.ini
+readonly CLASSBOOK_UNINSTALL_PATH=/usr/bin/classbook-uninstall
+
+# COLORS
+readonly COLOUR_RESET='\e[0m'
+readonly aCOLOUR=(
+    '\e[38;5;154m' # green  	| Lines, bullets and separators
+    '\e[1m'        # Bold white	| Main descriptions
+    '\e[90m'       # Grey		| Credits
+    '\e[91m'       # Red		| Update notifications Alert
+    '\e[33m'       # Yellow		| Emphasis
+)
+
+readonly GREEN_LINE=" ${aCOLOUR[0]}─────────────────────────────────────────────────────$COLOUR_RESET"
+readonly GREEN_BULLET=" ${aCOLOUR[0]}-$COLOUR_RESET"
+readonly GREEN_SEPARATOR="${aCOLOUR[0]}:$COLOUR_RESET"
+
+# CLASSBOOK VARIABLES
+TARGET_ARCH=""
+TMP_ROOT=/tmp/classbook-installer
+REGION="UNKNOWN"
+CLASSBOOK_DOWNLOAD_DOMAIN="https://github.com/"
+
+trap 'onCtrlC' INT
+onCtrlC() {
+    echo -e "${COLOUR_RESET}"
+    exit 1
+}
+
+###############################################################################
+# Helpers                                                                     #
+###############################################################################
+
+#######################################
+# Custom printing function
+# Globals:
+#   None
+# Arguments:
+#   $1 0:OK   1:FAILED  2:INFO  3:NOTICE
+#   message
+# Returns:
+#   None
+#######################################
+
+Show() {
+    # OK
+    if (($1 == 0)); then
+        echo -e "${aCOLOUR[2]}[$COLOUR_RESET${aCOLOUR[0]}  OK  $COLOUR_RESET${aCOLOUR[2]}]$COLOUR_RESET $2"
+    # FAILED
+    elif (($1 == 1)); then
+        echo -e "${aCOLOUR[2]}[$COLOUR_RESET${aCOLOUR[3]}FAILED$COLOUR_RESET${aCOLOUR[2]}]$COLOUR_RESET $2"
+        exit 1
+    # INFO
+    elif (($1 == 2)); then
+        echo -e "${aCOLOUR[2]}[$COLOUR_RESET${aCOLOUR[0]} INFO $COLOUR_RESET${aCOLOUR[2]}]$COLOUR_RESET $2"
+    # NOTICE
+    elif (($1 == 3)); then
+        echo -e "${aCOLOUR[2]}[$COLOUR_RESET${aCOLOUR[4]}NOTICE$COLOUR_RESET${aCOLOUR[2]}]$COLOUR_RESET $2"
+    fi
+}
+
+Warn() {
+    echo -e "${aCOLOUR[3]}$1$COLOUR_RESET"
+}
+
+GreyStart() {
+    echo -e "${aCOLOUR[2]}\c"
+}
+
+ColorReset() {
+    echo -e "$COLOUR_RESET\c"
+}
+
+Sudo() {
+    apt install sudo -y
+
+}
+# Clear Terminal
+Clear_Term() {
+
+    # Without an input terminal, there is no point in doing this.
+    [[ -t 0 ]] || return
+
+    # Printing terminal height - 1 newlines seems to be the fastest method that is compatible with all terminal types.
+    lines=$(tput lines) i newlines
+    local lines
+
+    for ((i = 1; i < ${lines% *}; i++)); do newlines+='\n'; done
+    echo -ne "\e[0m$newlines\e[H"
+
+}
+
+mongodb-install() {
+    sudo apt install curl sudo gpg tee -y
+    sudo curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+    sudo echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+    sudo apt search mongodb-org
+
+}
+
+postfix_conf () {
+echo "relayhost = [smtp.gmail.com]:587" | sudo tee -a /etc/postfix/main.cf
+echo "smtp_use_tls = yes" | sudo tee -a /etc/postfix/main.cf
+echo "smtp_tls_security_level = encrypt" | sudo tee -a /etc/postfix/main.cf
+echo "smtp_tls_note_starttls_offer = yes" | sudo tee -a /etc/postfix/main.cf
+echo "smtp_sasl_auth_enable = yes" | sudo tee -a /etc/postfix/main.cf
+echo "smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd" | sudo tee -a /etc/postfix/main.cf
+echo "smtp_sasl_security_options = noanonymous" | sudo tee -a /etc/postfix/main.cf
+echo "smtp_sasl_tls_security_options = noanonymous" | sudo tee -a /etc/postfix/main.cf
+echo "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt" | sudo tee -a /etc/postfix/main.cf
+
+# Créer le fichier de mot de passe SASL
+sudo bash -c 'cat << EOF > /etc/postfix/sasl_passwd
+[smtp.gmail.com]:587 classbook.dev@outlook.fr:vejb yhvc kimx gokl
+EOF'
+
+# Protéger le fichier de mot de passe
+sudo chmod 600 /etc/postfix/sasl_passwd
+
+# Créer la table de hachage pour le fichier de mot de passe SASL
+sudo postmap /etc/postfix/sasl_passwd
+
+# Redémarrer Postfix pour appliquer les modifications
+sudo systemctl restart postfix
+
+# Configurer UFW pour autoriser le trafic SMTP
+sudo ufw allow Postfix
+sudo ufw reload
+
+}
+# Check file exists
+exist_file() {
+    if [ -e "$1" ]; then
+        return 1
+    else
+        return 2
+    fi
+}
+
+###############################################################################
+# FUNCTIONS                                                                   #
+###############################################################################
+
+
+
+# 0 Get download url domain
+# To solve the problem that Chinese users cannot access github.
+Get_Download_Url_Domain() {
+    # Use ipconfig.io/country and https://ifconfig.io/country_code to get the country code
+    REGION=$(${sudo_cmd} curl --connect-timeout 2 -s ipconfig.io/country || echo "")
+    CLASSBOOK_DOWNLOAD_DOMAIN="https://github.com/classbook-devloppers/"
+}
+
+# 1 Check Arch
+Check_Arch() {
+    case $UNAME_M in
+    *aarch64*)
+        TARGET_ARCH="arm64"
+        ;;
+    *64*)
+        TARGET_ARCH="amd64"
+        ;;
+    *armv7*)
+        TARGET_ARCH="arm-7"
+        ;;
+    *)
+        Show 1 "Aborted, unsupported or unknown architecture: $UNAME_M"
+        exit 1
+        ;;
+    esac
+    Show 0 "Your hardware architecture is : $UNAME_M"
+    CLASSBOOK_PACKAGES=(
+        "${CLASSBOOK_DOWNLOAD_DOMAIN}source-code/release/lastest/lastest.zip"
+        "${CLASSBOOK_DOWNLOAD_DOMAIN}services/release/lastest/lastest.zip"
+    )
+}
+
+# 2 Check Distribution
+Check_Distribution() {
+    sType=0
+    notice=""
+    case $LSB_DIST in
+    *debian*) ;;
+
+    *ubuntu*) ;;
+
+    esac
+    Show ${sType} "Your Linux Distribution is : ${DIST} ${notice}"
+
+    if [[ ${sType} == 1 ]]; then
+        select yn in "Yes" "No"; do
+            case $yn in
+            [yY][eE][sS] | [yY])
+                Show 0 "Distribution check has been ignored."
+                break
+                ;;
+            [nN][oO] | [nN])
+                Show 1 "Already exited the installation."
+                exit 1
+                ;;
+            esac
+        done < /dev/tty # < /dev/tty is used to read the input from the terminal
+    fi
+}
+
+# 3 Check OS
+Check_OS() {
+    if [[ $UNAME_U == *Linux* ]]; then
+        Show 0 "Your System is : $UNAME_U"
+    else
+        Show 1 "This script is only for Linux."
+        exit 1
+    fi
+}
+
+# 4 Check Memory
+Check_Memory() {
+    if [[ "${PHYSICAL_MEMORY}" -lt "${MINIMUM_MEMORY}" ]]; then
+        Show 1 "requires atleast 2GiB physical memory."
+        exit 1
+    fi
+    Show 0 "Memory capacity check passed."
+}
+
+# 5 Check Disk
+Check_Disk() {
+    if [[ "${FREE_DISK_GB}" -lt "${MINIMUM_DISK_SIZE_GB}" ]]; then
+        echo -e "${aCOLOUR[4]}Recommended free disk space is greater than ${MINIMUM_DISK_SIZE_GB}GB, Current free disk space is ${aCOLOUR[3]}${FREE_DISK_GB}GB${COLOUR_RESET}${aCOLOUR[4]}.\nContinue installation?${COLOUR_RESET}"
+        select yn in "Yes" "No"; do
+            case $yn in
+            [yY][eE][sS] | [yY])
+                Show 0 "Disk capacity check has been ignored."
+                break
+                ;;
+            [nN][oO] | [nN])
+                Show 1 "Already exited the installation."
+                exit 1
+                ;;
+            esac
+        done < /dev/tty  # < /dev/tty is used to read the input from the terminal
+    else
+        Show 0 "Disk capacity check passed."
+    fi
+}
+
+# Check Port Use
+Check_Port() {
+    TCPListeningnum=$(${sudo_cmd} netstat -an | grep ":$1 " | awk '$1 == "tcp" && $NF == "LISTEN" {print $0}' | wc -l)
+    UDPListeningnum=$(${sudo_cmd} netstat -an | grep ":$1 " | awk '$1 == "udp" && $NF == "0.0.0.0:*" {print $0}' | wc -l)
+    ((Listeningnum = TCPListeningnum + UDPListeningnum))
+    if [[ $Listeningnum == 0 ]]; then
+        echo "0"
+    else
+        echo "1"
+    fi
+}
+
+# Get an available port
+Get_Port() {
+    CurrentPort=$(${sudo_cmd} cat ${CLASSBOOK_CONF_PATH} | grep HttpPort | awk '{print $3}')
+    if [[ $CurrentPort == "$Port" ]]; then
+        for PORT in {80..65536}; do
+            if [[ $(Check_Port "$PORT") == 0 ]]; then
+                Port=$PORT
+                break
+            fi
+        done
+    else
+        Port=$CurrentPort
+    fi
+}
+
+# Update package
+
+Update_Package_Resource() {
+    Show 2 "Updating package manager..."
+    GreyStart
+    if [ -x "$(command -v apt-get)" ]; then
+        ${sudo_cmd} sudo apt-get update -qq
+
+    ColorReset
+    Show 0 "Update package manager complete."
+}
+
+# Install depends package
+Install_Depends() {
+    for ((i = 0; i < ${#CLASSBOOK_DEPANDS_COMMAND[@]}; i++)); do
+        cmd=${CLASSBOOK_DEPANDS_COMMAND[i]}
+        if [[ ! -x $(${sudo_cmd} which "$cmd") ]]; then
+            packagesNeeded=${CLASSBOOK_DEPANDS_PACKAGE[i]}
+            Show 2 "Install the necessary dependencies: \e[33m$packagesNeeded \e[0m"
+            GreyStart
+            if [ -x "$(command -v apt-get)" ]; then
+                ${sudo_cmd} apt-get -y -qq install "$packagesNeeded" --no-upgrade
+            else
+                Show 1 "Package manager not found. You must manually install: \e[33m$packagesNeeded \e[0m"
+            fi
+            ColorReset
+        fi
+    done
+}
+
+Check_Dependency_Installation() {
+    for ((i = 0; i < ${#CLASSBOOK_DEPANDS_COMMAND[@]}; i++)); do
+        cmd=${CLASSBOOK_DEPANDS_COMMAND[i]}
+        if [[ ! -x $(${sudo_cmd} which "$cmd") ]]; then
+            packagesNeeded=${CLASSBOOK_DEPANDS_PACKAGE[i]}
+            Show 1 "Dependency \e[33m$packagesNeeded \e[0m installation failed, please try again manually!"
+            exit 1
+        fi
+    done
+}
+
+MongoDB_conf () {
+systemctl start mongodb
+systemctl enable mongodb
+
+sleep 5
+
+cat <<EOF > setup-mongodb.js
+
+use Books
+db.createCollection("livres")
+
+use Users
+db.createCollection("users")
+
+use Admins
+db.createCollection("admins")
+EOF
+
+mongo < setup-mongodb.js
+
+rm setup-mongodb.js
+
+}
+
+# Download And Install ClassBook
+DownloadAndInstallClassBook() {
+    if [ -z "${BUILD_DIR}" ]; then
+        ${sudo_cmd} rm -rf ${TMP_ROOT}
+        mkdir -p ${TMP_ROOT} || Show 1 "Failed to create temporary directory"
+        TMP_DIR=$(${sudo_cmd} mktemp -d -p ${TMP_ROOT} || Show 1 "Failed to create temporary directory")
+
+        pushd "${TMP_DIR}"
+
+        for PACKAGE in "${CLASSBOOK_PACKAGES[@]}"; do
+            Show 2 "Downloading ${PACKAGE}..."
+            GreyStart
+            ${sudo_cmd} wget -t 3 -q --show-progress -c  "${PACKAGE}" || Show 1 "Failed to download package"
+            ColorReset
+        done
+
+        for PACKAGE_FILE in linux-*.tar.gz; do
+            Show 2 "Extracting ${PACKAGE_FILE}..."
+            GreyStart
+            ${sudo_cmd} tar zxf "${PACKAGE_FILE}" || Show 1 "Failed to extract package"
+            ColorReset
+        done
+
+        BUILD_DIR=$(${sudo_cmd} realpath -e "${TMP_DIR}"/build || Show 1 "Failed to find build directory")
+
+        popd
+    fi
+
+    for SERVICE in "${CLASSBOOK_SERVICES[@]}"; do
+        if ${sudo_cmd} systemctl --quiet is-active "${SERVICE}"; then
+            Show 2 "Stopping ${SERVICE}..."
+            GreyStart
+            ${sudo_cmd} systemctl stop "${SERVICE}" || Show 3 "Service ${SERVICE} does not exist."
+            ColorReset
+        fi
+    done
+
+
+    Show 2 "Installing ClassBook..."
+    SYSROOT_DIR=$(realpath -e "${BUILD_DIR}"/sysroot || Show 1 "Failed to find sysroot directory")
+
+    # Generate manifest for uninstallation
+    MANIFEST_FILE=${BUILD_DIR}/sysroot/var/lib/classbook/manifest
+    ${sudo_cmd} touch "${MANIFEST_FILE}" || Show 1 "Failed to create manifest file"
+
+    GreyStart
+    find "${SYSROOT_DIR}" -type f | ${sudo_cmd} cut -c ${#SYSROOT_DIR}- | ${sudo_cmd} cut -c 2- | ${sudo_cmd} tee "${MANIFEST_FILE}" >/dev/null || Show 1 "Failed to create manifest file"
+
+    ${sudo_cmd} cp -rf "${SYSROOT_DIR}"/* / || Show 1 "Failed to install ClassBook"
+    ColorReset
+
+    SETUP_SCRIPT_DIR=$(realpath -e "${BUILD_DIR}"/scripts/setup/script.d || Show 1 "Failed to find setup script directory")
+
+    for SETUP_SCRIPT in "${SETUP_SCRIPT_DIR}"/*.sh; do
+        Show 2 "Running ${SETUP_SCRIPT}..."
+        GreyStart
+        ${sudo_cmd} bash "${SETUP_SCRIPT}" || Show 1 "Failed to run setup script"
+        ColorReset
+    done
+    
+    UI_EVENTS_REG_SCRIPT=/etc/classbook/start.d/register-ui-events.sh
+    if [[ -f ${UI_EVENTS_REG_SCRIPT} ]]; then
+        ${sudo_cmd} chmod +x $UI_EVENTS_REG_SCRIPT
+    fi
+    
+    for SERVICE in "${CLASSBOOK_SERVICES[@]}"; do
+        Show 2 "Starting ${SERVICE}..."
+        GreyStart
+        ${sudo_cmd} systemctl start "${SERVICE}" || Show 3 "Service ${SERVICE} does not exist."
+        ColorReset
+    done
+}
+
+Clean_Temp_Files() {
+    Show 2 "Clean temporary files..."
+    ${sudo_cmd} rm -rf "${TMP_DIR}" || Show 1 "Failed to clean temporary files"
+}
+
+Check_Service_status() {
+    for SERVICE in "${CLASSBOOK_SERVICES[@]}"; do
+        Show 2 "Checking ${SERVICE}..."
+        if [[ $(${sudo_cmd} systemctl is-active "${SERVICE}") == "active" ]]; then
+            Show 0 "${SERVICE} is running."
+        else
+            Show 1 "${SERVICE} is not running, Please reinstall."
+            exit 1
+        fi
+    done
+}
+
+# Get the physical NIC IP
+Get_IPs() {
+    PORT=$(${sudo_cmd} cat ${CLASSBOOK_CONF_PATH} | grep port | sed 's/port=//')
+    ALL_NIC=$($sudo_cmd ls /sys/class/net/ | grep -v "$(ls /sys/devices/virtual/net/)")
+    for NIC in ${ALL_NIC}; do
+        IP=$($sudo_cmd ifconfig "${NIC}" | grep inet | grep -v 127.0.0.1 | grep -v inet6 | awk '{print $2}' | sed -e 's/addr://g')
+        if [[ -n $IP ]]; then
+            if [[ "$PORT" -eq "80" ]]; then
+                echo -e "${GREEN_BULLET} http://$IP (${NIC})"
+            else
+                echo -e "${GREEN_BULLET} http://$IP:$PORT (${NIC})"
+            fi
+        fi
+    done
+}
+
+# Show Welcome Banner
+Welcome_Banner() {
+    CLASSBOOK_TAG=$(classbook -v)
+
+    }
+
+echo -e "${GREEN_LINE}${aCOLOUR[1]}"
+echo -e " ClassBook ${COLOUR_RESET} is running at${COLOUR_RESET}${GREEN_SEPARATOR}"
+echo -e "${GREEN_LINE}"
+Get_IPs
+echo -e " Pour configurer Classbook, ouvrez votre navigateur et allez dans l'Admin Pannel"
+echo -e "${GREEN_LINE}"
+echo -e ""
+echo -e " ${aCOLOUR[2]}ClassBook Project  : https://github.com/ClassBoook-Devloppers/Classbook"
+echo -e " ${aCOLOUR[2]}ClassBook Team     : https://github.com/ClassBook-Devloppers/Classbook#maintainers"
+echo -e " ${aCOLOUR[2]}ClassBook Discord  : https://discord.gg/QreaU4U922"
+echo -e " ${aCOLOUR[2]}Website            : https://classbook-devloppers.github.io/.github/"
+echo -e ""
+echo -e "${COLOUR_RESET}"
+echo -e "${GREEN_LINE}"
+echo -e "Merci d'utiliser ClassBook !"
+echo -e "${COLOUR_RESET}"
+
+}
+
+update_motd() {
+
+MOTD_FILE="/etc/update-motd.d/classbook"
+
+# Créer le script MOTD avec le contenu souhaité
+cat << 'EOF' > "$MOTD_FILE"
+
+# Define colors using EOF
+read -r -d '' COLORS << 'EOC'
+COLOUR_RESET='\e[0m'
+aCOLOUR=(
+    '\e[38;5;154m' # green  | Lines, bullets and separators
+    '\e[1m'        # Bold white | Main descriptions
+    '\e[90m'       # Grey       | Credits
+    '\e[91m'       # Red        | Update notifications Alert
+    '\e[33m'       # Yellow     | Emphasis
+)
+EOC
+
+# Evaluate the colors
+eval "$COLORS"
+
+# Define green line and separator
+read -r -d '' LINES << 'EOL'
+GREEN_LINE="${aCOLOUR[0]}========================================${COLOUR_RESET}"
+GREEN_SEPARATOR="${aCOLOUR[0]}: ${COLOUR_RESET}"
+EOL
+
+# Evaluate the lines
+eval "$LINES"
+
+# Function to get IP addresses and hostname
+Get_IPs() {
+    local hostname=$(hostname)
+    local domain=$(hostname -d)
+
+    if [ -z "$domain" ]; then
+        domain="localdomain"
+    fi
+
+    local full_hostname="${hostname}.${domain}"
+    local ip_address=$(hostname -I | awk '{print $1}')
+    
+    echo -e "${aCOLOUR[1]}Hostname${COLOUR_RESET}${GREEN_SEPARATOR} ${full_hostname}"
+    echo -e "${aCOLOUR[1]}IP Address${COLOUR_RESET}${GREEN_SEPARATOR} ${ip_address}"
+}
+
+# Clear the screen
+CLEAR() {
+    clear
+}
+
+# Get ClassBook version
+CLASSBOOK_TAG=$(classbook -v)
+
+# Print MOTD
+CLEAR
+echo -e "${GREEN_LINE}${aCOLOUR[1]}"
+echo -e " ClassBook ${CLASSBOOK_TAG}${COLOUR_RESET} is running at${COLOUR_RESET}${GREEN_SEPARATOR}"
+echo -e "${GREEN_LINE}"
+Get_IPs
+echo -e " Pour configurer ClassBook, ouvrez votre navigateur et allez dans l'Admin Pannel."
+echo -e "${GREEN_LINE}"
+echo -e ""
+echo -e " ${aCOLOUR[2]}ClassBook Project  : https://github.com/ClassBook-Devloppers/Classbook"
+echo -e " ${aCOLOUR[2]}ClassBook Team     : https://github.com/Classbook-Devloppers/Classbook#maintainers"
+echo -e " ${aCOLOUR[2]}ClassBook Discord  : https://discord.gg/QreaU4U922"
+echo -e " ${aCOLOUR[2]}Website            : https://classbook-devloppers.github.io/.github/"
+echo -e ""
+echo -e "${COLOUR_RESET}"
+echo -e "${GREEN_LINE}"
+echo -e "Merci d'utiliser ClassBook !"
+EOF
+
+
+chmod +x "$MOTD_FILE"
+
+# Afficher un message de succès
+echo "Le script MOTD pour ClassBook a été installé avec succès."
+
+
+}
+
+###############################################################################
+# Main                                                                        #
+###############################################################################
+
+#Usage
+usage() {
+    cat <<-EOF
+		Usage: install.sh [options]
+		Valid options are:
+		    -p <build_dir>          Specify build directory (Local install)
+		    -h                      Show this help message and exit
+	EOF
+    exit "$1"
+}
+
+while getopts ":p:h" arg; do
+    case "$arg" in
+    p)
+        BUILD_DIR=$OPTARG
+        ;;
+    h)
+        usage 0
+        ;;
+    *)
+        usage 1
+        ;;
+    esac
+done
+
+sudo
+# Step 0 : Get Download Url Domain
+Get_Download_Url_Domain
+# Step 1: Check ARCH
+Check_Arch
+
+# Step 2: Check OS
+Check_OS
+
+# Step 3: Check Distribution
+Check_Distribution
+
+# Step 4: Check System Required
+Check_Memory
+Check_Disk
+
+# Step 5: Install Depends
+mongodb-install
+Update_Package_Resource
+Install_Depends
+Check_Dependency_Installation
+postfix_conf
+MongoDB_conf
+
+
+# Step 8: Download And Install ClassBook
+DownloadAndInstallClassBook
+
+# Step 9: Check Service Status
+Check_Service_status
+
+# Step 10: Clear Term and Show Welcome Banner
+update_motd
+Welcome_Banner
