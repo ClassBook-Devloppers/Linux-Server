@@ -29,7 +29,7 @@ source /etc/os-release
 
 # SYSTEM REQUIREMENTS
 readonly MINIMUM_DISK_SIZE_GB="15"
-readonly MINIMUM_MEMORY="2048"
+readonly MINIMUM_MEMORY="1024"
 readonly CLASSBOOK_DEPANDS_PACKAGE=('wget' 'nginx' 'unzip' 'mailutils' 'postfix' 'libsasl2-2 ca-certificates' 'libsasl2-modules' 'curl'  'parted' 'ntfs-3g' 'net-tools' 'nginx' 'npm' 'php' 'php-mysql' 'php-pdo' 'php-mbstring' 'php-tokenizer' 'php-xml' 'samba' 'cifs-utils' 'mergerfs' 'unzip' 'libapache2-mod-php' 'mongodb-org')
 readonly CLASSBOOK_DEPANDS_COMMAND=('wget' 'curl' 'smartctl' 'parted' 'ntfs-3g' 'netstat' 'udevil' 'smbd' 'mount.cifs' 'mount.mergerfs' 'unzip')
 
@@ -275,7 +275,7 @@ Check_OS() {
 # 4 Check Memory
 Check_Memory() {
     if [[ "${PHYSICAL_MEMORY}" -lt "${MINIMUM_MEMORY}" ]]; then
-        Show 1 "requires atleast 2GiB physical memory."
+        Show 1 "requires atleast 1GiB physical memory."
         exit 1
     fi
     Show 0 "Memory capacity check passed."
