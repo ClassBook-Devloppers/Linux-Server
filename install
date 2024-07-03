@@ -30,7 +30,7 @@ source /etc/os-release
 # SYSTEM REQUIREMENTS
 readonly MINIMUM_DISK_SIZE_GB="15"
 readonly MINIMUM_MEMORY="2048"
-readonly CLASSBOOK_DEPANDS_PACKAGE=('wget' 'mailutils' 'postfix' 'libsasl2-2 ca-certificates' 'libsasl2-modules' 'curl'  'parted' 'ntfs-3g' 'net-tools' 'nginx' 'npm' 'php' 'php-mysql' 'php-pdo' 'php-mbstring' 'php-tokenizer' 'php-xml' 'samba' 'cifs-utils' 'mergerfs' 'unzip' 'libapache2-mod-php' 'mongodb-org')
+readonly CLASSBOOK_DEPANDS_PACKAGE=('wget' 'nginx' 'mailutils' 'postfix' 'libsasl2-2 ca-certificates' 'libsasl2-modules' 'curl'  'parted' 'ntfs-3g' 'net-tools' 'nginx' 'npm' 'php' 'php-mysql' 'php-pdo' 'php-mbstring' 'php-tokenizer' 'php-xml' 'samba' 'cifs-utils' 'mergerfs' 'unzip' 'libapache2-mod-php' 'mongodb-org')
 readonly CLASSBOOK_DEPANDS_COMMAND=('wget' 'curl' 'smartctl' 'parted' 'ntfs-3g' 'netstat' 'udevil' 'smbd' 'mount.cifs' 'mount.mergerfs' 'unzip')
 
 # SYSTEM INFO
@@ -259,6 +259,54 @@ Check_Distribution() {
     fi
 }
 
+Nginx_conf() {
+    server {
+    listen 80;
+    root /etc/classbook/;  
+
+    error_page 403 /403.html;
+    error_page 404 /404.html;
+    error_page 400 /400.html;
+    error_page 500 /500.html;
+    error_page 502 /502.html;
+
+    location = /errors/403.html {
+        allow all;
+        internal;
+        root /etc/classbook/errors;  
+    }
+
+    location = /errors/404.html {
+        allow all;
+        internal;
+        root /etc/classbook/errors;  
+    }
+
+    location = /errors/500.html {
+        allow all;
+        internal;
+        root /etc/classbook/errors;  
+    }
+
+    location = /errors/502.html {
+        allow all;
+        internal;
+        root /etc/classbook/errors;  
+    }
+
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /admin {
+        try_files $uri $uri/ /index.html;
+    }
+
+}
+
+
+}
 # 3 Check OS
 Check_OS() {
     if [[ $UNAME_U == *Linux* ]]; then
@@ -501,107 +549,32 @@ Get_IPs() {
 Welcome_Banner() {
     CLASSBOOK_TAG=$(classbook -v)
 
-    }
-
-echo -e "${GREEN_LINE}${aCOLOUR[1]}"
-echo -e " ClassBook ${COLOUR_RESET} is running at${COLOUR_RESET}${GREEN_SEPARATOR}"
-echo -e "${GREEN_LINE}"
-Get_IPs
-echo -e " Pour configurer Classbook, ouvrez votre navigateur et allez dans l'Admin Pannel"
-echo -e "${GREEN_LINE}"
-echo -e ""
-echo -e " ${aCOLOUR[2]}ClassBook Project  : https://github.com/ClassBoook-Devloppers/Classbook"
-echo -e " ${aCOLOUR[2]}ClassBook Team     : https://github.com/ClassBook-Devloppers/Classbook#maintainers"
-echo -e " ${aCOLOUR[2]}ClassBook Discord  : https://discord.gg/QreaU4U922"
-echo -e " ${aCOLOUR[2]}Website            : https://classbook-devloppers.github.io/.github/"
-echo -e ""
-echo -e "${COLOUR_RESET}"
-echo -e "${GREEN_LINE}"
-echo -e "Merci d'utiliser ClassBook !"
-echo -e "${COLOUR_RESET}"
+    echo -e "${GREEN_LINE}${aCOLOUR[1]}"
+    echo -e " ClassBook ${COLOUR_RESET} is running at${COLOUR_RESET}${GREEN_SEPARATOR}"
+    echo -e "${GREEN_LINE}"
+    Get_IPs
+    echo -e " Pour configurer Classbook, ouvrez votre navigateur et allez dans l'Admin Pannel"
+    echo -e "${GREEN_LINE}"
+    echo -e ""
+    echo -e " ${aCOLOUR[2]}ClassBook Project  : https://github.com/ClassBoook-Devloppers/Classbook"
+    echo -e " ${aCOLOUR[2]}ClassBook Team     : https://github.com/ClassBook-Devloppers/Classbook#maintainers"
+    echo -e " ${aCOLOUR[2]}ClassBook Discord  : https://discord.gg/QreaU4U922"
+    echo -e " ${aCOLOUR[2]}Website            : https://classbook-devloppers.github.io/.github/"
+    echo -e ""
+    echo -e "${COLOUR_RESET}"
+    echo -e "${GREEN_LINE}"
+    echo -e "Merci d'utiliser ClassBook !"
+    echo -e "${COLOUR_RESET}"
 
 }
 
 update_motd() {
 
-MOTD_FILE="/etc/update-motd.d/classbook"
+    MOTD_FILE="/etc/update-motd.d/classbook"
 
-# Créer le script MOTD avec le contenu souhaité
-cat << 'EOF' > "$MOTD_FILE"
+    wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/classbook > $MOTD_FILE
 
-# Define colors using EOF
-read -r -d '' COLORS << 'EOC'
-COLOUR_RESET='\e[0m'
-aCOLOUR=(
-    '\e[38;5;154m' # green  | Lines, bullets and separators
-    '\e[1m'        # Bold white | Main descriptions
-    '\e[90m'       # Grey       | Credits
-    '\e[91m'       # Red        | Update notifications Alert
-    '\e[33m'       # Yellow     | Emphasis
-)
-EOC
-
-# Evaluate the colors
-eval "$COLORS"
-
-# Define green line and separator
-read -r -d '' LINES << 'EOL'
-GREEN_LINE="${aCOLOUR[0]}========================================${COLOUR_RESET}"
-GREEN_SEPARATOR="${aCOLOUR[0]}: ${COLOUR_RESET}"
-EOL
-
-# Evaluate the lines
-eval "$LINES"
-
-# Function to get IP addresses and hostname
-Get_IPs() {
-    local hostname=$(hostname)
-    local domain=$(hostname -d)
-
-    if [ -z "$domain" ]; then
-        domain="localdomain"
-    fi
-
-    local full_hostname="${hostname}.${domain}"
-    local ip_address=$(hostname -I | awk '{print $1}')
-    
-    echo -e "${aCOLOUR[1]}Hostname${COLOUR_RESET}${GREEN_SEPARATOR} ${full_hostname}"
-    echo -e "${aCOLOUR[1]}IP Address${COLOUR_RESET}${GREEN_SEPARATOR} ${ip_address}"
-}
-
-# Clear the screen
-CLEAR() {
-    clear
-}
-
-# Get ClassBook version
-CLASSBOOK_TAG=$(classbook -v)
-
-# Print MOTD
-CLEAR
-echo -e "${GREEN_LINE}${aCOLOUR[1]}"
-echo -e " ClassBook ${CLASSBOOK_TAG}${COLOUR_RESET} is running at${COLOUR_RESET}${GREEN_SEPARATOR}"
-echo -e "${GREEN_LINE}"
-Get_IPs
-echo -e " Pour configurer ClassBook, ouvrez votre navigateur et allez dans l'Admin Pannel."
-echo -e "${GREEN_LINE}"
-echo -e ""
-echo -e " ${aCOLOUR[2]}ClassBook Project  : https://github.com/ClassBook-Devloppers/Classbook"
-echo -e " ${aCOLOUR[2]}ClassBook Team     : https://github.com/Classbook-Devloppers/Classbook#maintainers"
-echo -e " ${aCOLOUR[2]}ClassBook Discord  : https://discord.gg/QreaU4U922"
-echo -e " ${aCOLOUR[2]}Website            : https://classbook-devloppers.github.io/.github/"
-echo -e ""
-echo -e "${COLOUR_RESET}"
-echo -e "${GREEN_LINE}"
-echo -e "Merci d'utiliser ClassBook !"
-EOF
-
-
-chmod +x "$MOTD_FILE"
-
-# Afficher un message de succès
-echo "Le script MOTD pour ClassBook a été installé avec succès."
-
+    chmod +x "$MOTD_FILE"
 
 }
 
