@@ -502,7 +502,7 @@ while getopts ":p:h" arg; do
     esac
 done
 
-sudo
+Sudo
 # Step 0 : Get Download Url Domain
 Get_Download_Url_Domain
 # Step 1: Check ARCH
