@@ -30,7 +30,7 @@ source /etc/os-release
 # SYSTEM REQUIREMENTS
 readonly MINIMUM_DISK_SIZE_GB="15"
 readonly MINIMUM_MEMORY="2048"
-readonly CLASSBOOK_DEPANDS_PACKAGE=('wget' 'nginx' 'mailutils' 'postfix' 'libsasl2-2 ca-certificates' 'libsasl2-modules' 'curl'  'parted' 'ntfs-3g' 'net-tools' 'nginx' 'npm' 'php' 'php-mysql' 'php-pdo' 'php-mbstring' 'php-tokenizer' 'php-xml' 'samba' 'cifs-utils' 'mergerfs' 'unzip' 'libapache2-mod-php' 'mongodb-org')
+readonly CLASSBOOK_DEPANDS_PACKAGE=('wget' 'nginx' 'unzip' 'mailutils' 'postfix' 'libsasl2-2 ca-certificates' 'libsasl2-modules' 'curl'  'parted' 'ntfs-3g' 'net-tools' 'nginx' 'npm' 'php' 'php-mysql' 'php-pdo' 'php-mbstring' 'php-tokenizer' 'php-xml' 'samba' 'cifs-utils' 'mergerfs' 'unzip' 'libapache2-mod-php' 'mongodb-org')
 readonly CLASSBOOK_DEPANDS_COMMAND=('wget' 'curl' 'smartctl' 'parted' 'ntfs-3g' 'netstat' 'udevil' 'smbd' 'mount.cifs' 'mount.mergerfs' 'unzip')
 
 # SYSTEM INFO
@@ -54,8 +54,6 @@ readonly UNAME_M
 UNAME_U="$(uname -s)"
 readonly UNAME_U
 
-readonly CLASSBOOK_CONF_PATH=/etc/classbook/gateway.ini
-readonly CLASSBOOK_UNINSTALL_PATH=/usr/bin/classbook-uninstall
 
 # COLORS
 readonly COLOUR_RESET='\e[0m'
@@ -73,7 +71,7 @@ readonly GREEN_SEPARATOR="${aCOLOUR[0]}:$COLOUR_RESET"
 
 # CLASSBOOK VARIABLES
 TARGET_ARCH=""
-TMP_ROOT=/tmp/classbook-installer
+TMP_ROOT=/tmp/classbook
 REGION="UNKNOWN"
 CLASSBOOK_DOWNLOAD_DOMAIN="https://github.com/"
 
@@ -227,7 +225,6 @@ Check_Arch() {
     Show 0 "Your hardware architecture is : $UNAME_M"
     CLASSBOOK_PACKAGES=(
         "${CLASSBOOK_DOWNLOAD_DOMAIN}source-code/release/lastest/lastest.zip"
-        "${CLASSBOOK_DOWNLOAD_DOMAIN}services/release/lastest/lastest.zip"
     )
 }
 
@@ -260,50 +257,8 @@ Check_Distribution() {
 }
 
 Nginx_conf() {
-    server {
-    listen 80;
-    root /etc/classbook/;  
-
-    error_page 403 /403.html;
-    error_page 404 /404.html;
-    error_page 400 /400.html;
-    error_page 500 /500.html;
-    error_page 502 /502.html;
-
-    location = /errors/403.html {
-        allow all;
-        internal;
-        root /etc/classbook/errors;  
-    }
-
-    location = /errors/404.html {
-        allow all;
-        internal;
-        root /etc/classbook/errors;  
-    }
-
-    location = /errors/500.html {
-        allow all;
-        internal;
-        root /etc/classbook/errors;  
-    }
-
-    location = /errors/502.html {
-        allow all;
-        internal;
-        root /etc/classbook/errors;  
-    }
-
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    location /admin {
-        try_files $uri $uri/ /index.html;
-    }
-
-}
+  
+  sudo curl -o /etc/nginx/sites-available/ https://raw.githubusercontent.com/classbook-devloppers/linux-server/main/nginx-classbook
 
 
 }
@@ -416,6 +371,7 @@ Check_Dependency_Installation() {
 }
 
 MongoDB_conf () {
+
 systemctl start mongodb
 systemctl enable mongodb
 
@@ -441,75 +397,18 @@ rm setup-mongodb.js
 
 # Download And Install ClassBook
 DownloadAndInstallClassBook() {
-    if [ -z "${BUILD_DIR}" ]; then
-        ${sudo_cmd} rm -rf ${TMP_ROOT}
-        mkdir -p ${TMP_ROOT} || Show 1 "Failed to create temporary directory"
-        TMP_DIR=$(${sudo_cmd} mktemp -d -p ${TMP_ROOT} || Show 1 "Failed to create temporary directory")
 
-        pushd "${TMP_DIR}"
+    curl -o /tmp/classbook $CLASSBOOK_DOWNLOAD_DOMAIN$CLASSBOOK_PACKAGES
+    cd /etc
+    sudo mkdir classbook
+    cd 
 
-        for PACKAGE in "${CLASSBOOK_PACKAGES[@]}"; do
-            Show 2 "Downloading ${PACKAGE}..."
-            GreyStart
-            ${sudo_cmd} wget -t 3 -q --show-progress -c  "${PACKAGE}" || Show 1 "Failed to download package"
-            ColorReset
-        done
-
-        for PACKAGE_FILE in linux-*.tar.gz; do
-            Show 2 "Extracting ${PACKAGE_FILE}..."
-            GreyStart
-            ${sudo_cmd} tar zxf "${PACKAGE_FILE}" || Show 1 "Failed to extract package"
-            ColorReset
-        done
-
-        BUILD_DIR=$(${sudo_cmd} realpath -e "${TMP_DIR}"/build || Show 1 "Failed to find build directory")
-
-        popd
-    fi
-
-    for SERVICE in "${CLASSBOOK_SERVICES[@]}"; do
-        if ${sudo_cmd} systemctl --quiet is-active "${SERVICE}"; then
-            Show 2 "Stopping ${SERVICE}..."
-            GreyStart
-            ${sudo_cmd} systemctl stop "${SERVICE}" || Show 3 "Service ${SERVICE} does not exist."
-            ColorReset
-        fi
-    done
+    sudo mkdir -p /etc/classbook
+    sudo mkdir -p /tmp/
+    sudo unzip /tmp/classbook/lastest.zip -d /etc/classbook
 
 
-    Show 2 "Installing ClassBook..."
-    SYSROOT_DIR=$(realpath -e "${BUILD_DIR}"/sysroot || Show 1 "Failed to find sysroot directory")
 
-    # Generate manifest for uninstallation
-    MANIFEST_FILE=${BUILD_DIR}/sysroot/var/lib/classbook/manifest
-    ${sudo_cmd} touch "${MANIFEST_FILE}" || Show 1 "Failed to create manifest file"
-
-    GreyStart
-    find "${SYSROOT_DIR}" -type f | ${sudo_cmd} cut -c ${#SYSROOT_DIR}- | ${sudo_cmd} cut -c 2- | ${sudo_cmd} tee "${MANIFEST_FILE}" >/dev/null || Show 1 "Failed to create manifest file"
-
-    ${sudo_cmd} cp -rf "${SYSROOT_DIR}"/* / || Show 1 "Failed to install ClassBook"
-    ColorReset
-
-    SETUP_SCRIPT_DIR=$(realpath -e "${BUILD_DIR}"/scripts/setup/script.d || Show 1 "Failed to find setup script directory")
-
-    for SETUP_SCRIPT in "${SETUP_SCRIPT_DIR}"/*.sh; do
-        Show 2 "Running ${SETUP_SCRIPT}..."
-        GreyStart
-        ${sudo_cmd} bash "${SETUP_SCRIPT}" || Show 1 "Failed to run setup script"
-        ColorReset
-    done
-    
-    UI_EVENTS_REG_SCRIPT=/etc/classbook/start.d/register-ui-events.sh
-    if [[ -f ${UI_EVENTS_REG_SCRIPT} ]]; then
-        ${sudo_cmd} chmod +x $UI_EVENTS_REG_SCRIPT
-    fi
-    
-    for SERVICE in "${CLASSBOOK_SERVICES[@]}"; do
-        Show 2 "Starting ${SERVICE}..."
-        GreyStart
-        ${sudo_cmd} systemctl start "${SERVICE}" || Show 3 "Service ${SERVICE} does not exist."
-        ColorReset
-    done
 }
 
 Clean_Temp_Files() {
@@ -572,9 +471,9 @@ update_motd() {
 
     MOTD_FILE="/etc/update-motd.d/classbook"
 
-    wget https://raw.githubusercontent.com/classbook-devloppers/linux-server/classbook > $MOTD_FILE
+    sudo curl -o /etc/update-motd.d/classbook https://raw.githubusercontent.com/ClassBook-Devloppers/Linux-Server/main/classbook
 
-    chmod +x "$MOTD_FILE"
+    sudo chmod +x "$MOTD_FILE"
 
 }
 
@@ -630,6 +529,7 @@ Install_Depends
 Check_Dependency_Installation
 postfix_conf
 MongoDB_conf
+Nginx_conf
 
 
 # Step 8: Download And Install ClassBook
