@@ -38,7 +38,7 @@
     }
 
     location /admin {
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ /Admin/index.html;
     }
 
 }
