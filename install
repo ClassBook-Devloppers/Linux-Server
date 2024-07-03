@@ -334,11 +334,7 @@ Get_Port() {
 Update_Package_Resource() {
     Show 2 "Updating package manager..."
     GreyStart
-    if [ -x "$(command -v apt-get)" ]; then
-        ${sudo_cmd} sudo apt-get update -qq
-
-    ColorReset
-    Show 0 "Update package manager complete."
+    sudo apt-get update -y
 }
 
 # Install depends package
